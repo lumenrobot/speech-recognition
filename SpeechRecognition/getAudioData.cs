@@ -7,6 +7,7 @@ using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.IO;
+using System.Diagnostics;
 
 namespace SpeechRecognition
 {
@@ -40,6 +41,7 @@ namespace SpeechRecognition
                     string body = Encoding.UTF8.GetString(ev.Body);
                     JsonSerializerSettings json = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Objects };
                     sound s = JsonConvert.DeserializeObject<sound>(body, json);
+                    Debug.WriteLine("Received sound: {0} {1} {2}", s.name, s.language, s.content.Length);
                     speech = new speechRecognition(s);
                     speech.startRecognition();
                 }

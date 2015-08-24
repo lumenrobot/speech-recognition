@@ -57,10 +57,12 @@ namespace SpeechRecognition
                     if (stream != null)
                         stream.Close();
                     ProcessStartInfo start = new ProcessStartInfo();
-                    start.FileName = @"""C:\Program Files\flac-1.3.1-win\flac-1.3.1-win\win64\flac.exe""";
+                    //start.FileName = @"""C:\Program Files\flac-1.3.1-win\flac-1.3.1-win\win64\flac.exe""";
+                    start.FileName = @"flac.exe";
                     start.WorkingDirectory = Environment.CurrentDirectory;
                     start.Arguments = "-f recording.wav";
                     start.UseShellExecute = true;
+                    start.CreateNoWindow = true;
                     Process process = Process.Start(start);
                     process.WaitForExit();
                 }
@@ -91,7 +93,8 @@ namespace SpeechRecognition
                     HttpWebRequest _HWR_SpeechToText = null;
                     WebProxy ITBproxy = new WebProxy();
                     ITBproxy.Address = new Uri("http://cache.itb.ac.id:8080", true);
-                    ITBproxy.Credentials = new NetworkCredential("ahmadsyarif", "920420");
+                    //ITBproxy.Credentials = new NetworkCredential("ahmadsyarif", "920420");
+                    ITBproxy.Credentials = new NetworkCredential("hendyirawan", "");
                     Console.WriteLine("language : " + language);
                     _HWR_SpeechToText = (HttpWebRequest)HttpWebRequest.Create("https://www.google.com/speech-api/v2/recognize?output=json&lang=" + language + "&key=" + ACCESS_GOOGLE_SPEECH_KEY);
                     _HWR_SpeechToText.Proxy = ITBproxy;

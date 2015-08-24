@@ -27,7 +27,8 @@ namespace SpeechRecognition
             Console.WriteLine("Start...");
             Console.WriteLine("");
             ConnectionFactory factory = new ConnectionFactory(); // establish connection
-            factory.Uri = "amqp://lumen:lumen@169.254.18.223/%2F"; // ip syarif
+            // factory.Uri = "amqp://lumen:lumen@169.254.18.223/%2F"; // ip syarif
+            factory.Uri = "amqp://localhost/%2F"; // local
             try
             {
                 IConnection connection = factory.CreateConnection();
