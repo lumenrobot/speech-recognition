@@ -91,13 +91,13 @@ namespace SpeechRecognition
                     filestream.Read(memoryStream.GetBuffer(), 0, (int)filestream.Length);
                     byte[] BA_AudioFile = memoryStream.GetBuffer();
                     HttpWebRequest _HWR_SpeechToText = null;
-                    WebProxy ITBproxy = new WebProxy();
-                    ITBproxy.Address = new Uri("http://cache.itb.ac.id:8080", true);
+                    //WebProxy ITBproxy = new WebProxy();
+                    //ITBproxy.Address = new Uri("http://cache.itb.ac.id:8080", true);
                     //ITBproxy.Credentials = new NetworkCredential("ahmadsyarif", "920420");
-                    ITBproxy.Credentials = new NetworkCredential("hendyirawan", "");
+                    //ITBproxy.Credentials = new NetworkCredential("sigit.ari", "");
                     Console.WriteLine("language : " + language);
                     _HWR_SpeechToText = (HttpWebRequest)HttpWebRequest.Create("https://www.google.com/speech-api/v2/recognize?output=json&lang=" + language + "&key=" + ACCESS_GOOGLE_SPEECH_KEY);
-                    _HWR_SpeechToText.Proxy = ITBproxy;
+                   // _HWR_SpeechToText.Proxy = ITBproxy;
                     _HWR_SpeechToText.Credentials = CredentialCache.DefaultCredentials;
                     _HWR_SpeechToText.Method = "POST";
                     _HWR_SpeechToText.ContentType = "audio/x-flac; rate=16000";
