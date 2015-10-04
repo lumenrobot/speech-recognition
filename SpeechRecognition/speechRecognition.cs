@@ -82,6 +82,7 @@ namespace SpeechRecognition
             convertToFlac();
             while (!flag)
             {
+                Thread.Sleep(100); // reduce CPU usage
                 flag = File.Exists(Environment.CurrentDirectory + "/recording.flac");
                 if (flag)
                 {
