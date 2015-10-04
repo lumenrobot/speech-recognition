@@ -3,9 +3,14 @@ package org.lskk.lumen.speech.recognition;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.ooxi.jdatauri.DataUri;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -30,6 +35,7 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +48,7 @@ import java.util.Locale;
 public class AudioRouter extends RouteBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(AudioRouter.class);
+    private static final DefaultExecutor executor = new DefaultExecutor();
 
     @Inject
     private Environment env;
@@ -181,6 +188,9 @@ public class AudioRouter extends RouteBuilder {
                         final URI contentUrl = URI.create(audioObject.getContentUrl());
                         if ("data".equals(contentUrl.getScheme())) {
                             final DataUri dataUri = DataUri.parse(audioObject.getContentUrl(), StandardCharsets.UTF_8);
+                            final ContentType originalType = ContentType.parse(dataUri.getMime());
+                            final boolean conversionRequired = !"audio/x-flac".equals(originalType.getMimeType()) || originalType.getParameter("rate") == null;
+
                             final Locale locale = Locale.ENGLISH; // TODO: support this in AudioObject
                             final URI recognizeUri = new URIBuilder("https://www.google.com/speech-api/v2/recognize")
                                     .addParameter("output", "json")
@@ -188,15 +198,52 @@ public class AudioRouter extends RouteBuilder {
                                     .addParameter("key", googleSpeechKey).build();
                             final HttpPost httpPost = new HttpPost(recognizeUri);
 
-                            // TODO: convert everything to FLAC 16000 Hz mono, unless already
+                            // convert everything to FLAC 16000 Hz mono, unless already
+                            final byte[] flacContent;
+                            final ContentType flacContentType;
+                            if (conversionRequired) {
+                                final File inFile = File.createTempFile("speech-", ".tmp");
+                                final File outFile = File.createTempFile("speech-", ".flac");
+                                log.info("Converting {} {} to FLAC {} ...", dataUri.getMime(), inFile, outFile);
+                                try (final ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+                                    FileUtils.writeByteArrayToFile(inFile, dataUri.getData());
+                                    // flac.exe doesn't support mp3, and that's a problem for now (note: mp3 patent is expiring)
+                                    final CommandLine cmdLine = new CommandLine("ffmpeg");
+                                    cmdLine.addArgument("-i");
+                                    cmdLine.addArgument(inFile.toString());
+                                    cmdLine.addArgument("-ar");
+                                    cmdLine.addArgument("16000");
+                                    cmdLine.addArgument("-ac");
+                                    cmdLine.addArgument("1");
+                                    cmdLine.addArgument("-y"); // happens, weird!
+                                    cmdLine.addArgument(outFile.toString());
+                                    executor.setStreamHandler(new PumpStreamHandler(bos));
+                                    final int executed;
+                                    try {
+                                        executed = executor.execute(cmdLine);
+                                    } finally {
+                                        log.info("{}: {}", cmdLine, bos.toString());
+                                    }
+                                    Preconditions.checkState(outFile.exists(), "Cannot convert %s %s to FLAC %s",
+                                            dataUri.getMime(), inFile, outFile);
+                                    flacContent = FileUtils.readFileToByteArray(outFile);
+                                    flacContentType = ContentType.parse("audio/x-flac; rate=16000");
+                                } finally {
+                                    outFile.delete();
+                                    inFile.delete();
+                                }
+                            } else {
+                                flacContent = dataUri.getData();
+                                flacContentType = originalType;
+                            }
 
                             // Google supports: audio/x-flac
                             // audio/mpeg (mp3) not supported: Your client has issued a malformed or illegal request. Unknown audio encoding: mpeg
                             // audio/vorbis, audio/ogg not supported
                             // ; rate=something is mandatory! 16000 Hz is pretty good
-                            httpPost.setEntity(new ByteArrayEntity(dataUri.getData(), ContentType.parse(dataUri.getMime() + "; rate=16000")));
+                            httpPost.setEntity(new ByteArrayEntity(flacContent, flacContentType));
                             log.info("Recognizing {} bytes {} for language {}...",
-                                    dataUri.getData().length, dataUri.getMime(), locale.toLanguageTag());
+                                    flacContent.length, flacContentType, locale.toLanguageTag());
                             final String content;
                             try (final CloseableHttpResponse resp = httpClient.execute(httpPost)) {
                                 if (resp.getStatusLine().getStatusCode() != 200) {
