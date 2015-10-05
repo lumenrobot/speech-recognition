@@ -14,10 +14,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
 import org.lskk.lumen.core.AudioObject;
 import org.lskk.lumen.core.LumenThing;
 import org.lskk.lumen.core.RecognizedSpeech;
@@ -49,6 +52,7 @@ public class AudioRouter extends RouteBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(AudioRouter.class);
     private static final DefaultExecutor executor = new DefaultExecutor();
+    private static final HttpClientContext httpContext = HttpClientContext.create();
 
     @Inject
     private Environment env;
@@ -245,15 +249,17 @@ public class AudioRouter extends RouteBuilder {
                             log.info("Recognizing {} bytes {} for language {}...",
                                     flacContent.length, flacContentType, locale.toLanguageTag());
                             final String content;
-                            try (final CloseableHttpResponse resp = httpClient.execute(httpPost)) {
-                                if (resp.getStatusLine().getStatusCode() != 200) {
-                                    final String errorContent = IOUtils.toString(resp.getEntity().getContent());
-                                    log.error("Recognize error: {} - {}", resp.getStatusLine(), errorContent);
-                                    throw new SpeechRecognitionException(
-                                            String.format("Recognize error: %s - %s", resp.getStatusLine(), errorContent));
-                                }
-                                content = IOUtils.toString(resp.getEntity().getContent());
+
+                            // do NOT close the resp/connection
+                            final CloseableHttpResponse resp = httpClient.execute(httpPost, httpContext);
+                            if (resp.getStatusLine().getStatusCode() != 200) {
+                                final String errorContent = IOUtils.toString(resp.getEntity().getContent());
+                                log.error("Recognize error: {} - {}", resp.getStatusLine(), errorContent);
+                                throw new SpeechRecognitionException(
+                                        String.format("Recognize error: %s - %s", resp.getStatusLine(), errorContent));
                             }
+                            content = IOUtils.toString(resp.getEntity().getContent());
+
                             final List<String> jsons = Splitter.on('\n').omitEmptyStrings().splitToList(content);
                             log.debug("JSON recognized all: {}", jsons);
                             final RecognizedSpeech recognizedSpeech = new RecognizedSpeech();

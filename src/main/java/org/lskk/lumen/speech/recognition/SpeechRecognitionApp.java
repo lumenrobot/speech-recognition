@@ -2,6 +2,8 @@ package org.lskk.lumen.speech.recognition;
 
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -28,7 +30,10 @@ public class SpeechRecognitionApp implements CommandLineRunner {
 
     @Bean(destroyMethod = "close")
     public CloseableHttpClient httpClient() {
-        return HttpClientBuilder.create().useSystemProperties().build();
+        final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+        cm.setMaxTotal(200);
+        cm.setDefaultMaxPerRoute(20);
+        return HttpClients.custom().useSystemProperties().setConnectionManager(cm).build();
     }
 
     @Override
