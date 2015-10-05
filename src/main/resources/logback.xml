@@ -8,6 +8,7 @@
     <logger name="org.apache.camel" level="INFO"/>
     <logger name="org.apache.http.impl" level="DEBUG"/>
     <logger name="org.apache.http.headers" level="DEBUG"/>
+    <!--<logger name="org.apache.http.wire" level="DEBUG"/>-->
     <logger name="org.hibernate.SQL" level="INFO"/>
     <logger name="org.springframework.web.servlet.mvc.method.annotation" level="DEBUG"/>
     <logger name="org.apache.commons.net" level="DEBUG"/>

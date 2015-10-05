@@ -1,7 +1,6 @@
 package org.lskk.lumen.speech.recognition;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.github.ooxi.jdatauri.DataUri;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -19,8 +18,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.HttpContext;
+import org.apache.http.message.BasicNameValuePair;
 import org.lskk.lumen.core.AudioObject;
 import org.lskk.lumen.core.LumenThing;
 import org.lskk.lumen.core.RecognizedSpeech;
@@ -53,6 +51,8 @@ public class AudioRouter extends RouteBuilder {
     private static final Logger log = LoggerFactory.getLogger(AudioRouter.class);
     private static final DefaultExecutor executor = new DefaultExecutor();
     private static final HttpClientContext httpContext = HttpClientContext.create();
+    public static final int SAMPLE_RATE = 16000;
+    public static final String FLAC_TYPE = "audio/x-flac";
 
     @Inject
     private Environment env;
@@ -175,12 +175,6 @@ public class AudioRouter extends RouteBuilder {
     @Override
     public void configure() throws Exception {
         final String googleSpeechKey = env.getRequiredProperty("google-speech.key");
-        // NAO only supports limited sample rates, so we limit to 22050 Hz (default)
-        final int sampleRate = 22050;
-        final int channelCount = 2;
-        final AudioFormat naoFormat = new AudioFormat(
-                AudioFormat.Encoding.PCM_SIGNED, sampleRate, 16,
-                channelCount, channelCount * 2, sampleRate, false);
         from("rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=avatar.nao1.audio.in")
                 .to("log:IN.avatar.nao1.audio.in?showHeaders=true&showAll=true&multiline=true")
                 .process(exchange -> {
@@ -193,7 +187,7 @@ public class AudioRouter extends RouteBuilder {
                         if ("data".equals(contentUrl.getScheme())) {
                             final DataUri dataUri = DataUri.parse(audioObject.getContentUrl(), StandardCharsets.UTF_8);
                             final ContentType originalType = ContentType.parse(dataUri.getMime());
-                            final boolean conversionRequired = !"audio/x-flac".equals(originalType.getMimeType()) || originalType.getParameter("rate") == null;
+                            final boolean conversionRequired = !FLAC_TYPE.equals(originalType.getMimeType()) || originalType.getParameter("rate") == null;
 
                             final Locale locale = Locale.ENGLISH; // TODO: support this in AudioObject
                             final URI recognizeUri = new URIBuilder("https://www.google.com/speech-api/v2/recognize")
@@ -216,7 +210,7 @@ public class AudioRouter extends RouteBuilder {
                                     cmdLine.addArgument("-i");
                                     cmdLine.addArgument(inFile.toString());
                                     cmdLine.addArgument("-ar");
-                                    cmdLine.addArgument("16000");
+                                    cmdLine.addArgument(String.valueOf(SAMPLE_RATE));
                                     cmdLine.addArgument("-ac");
                                     cmdLine.addArgument("1");
                                     cmdLine.addArgument("-y"); // happens, weird!
@@ -231,7 +225,7 @@ public class AudioRouter extends RouteBuilder {
                                     Preconditions.checkState(outFile.exists(), "Cannot convert %s %s to FLAC %s",
                                             dataUri.getMime(), inFile, outFile);
                                     flacContent = FileUtils.readFileToByteArray(outFile);
-                                    flacContentType = ContentType.parse("audio/x-flac; rate=16000");
+                                    flacContentType = ContentType.create(FLAC_TYPE, new BasicNameValuePair("rate", String.valueOf(SAMPLE_RATE)));
                                 } finally {
                                     outFile.delete();
                                     inFile.delete();
@@ -246,6 +240,27 @@ public class AudioRouter extends RouteBuilder {
                             // audio/vorbis, audio/ogg not supported
                             // ; rate=something is mandatory! 16000 Hz is pretty good
                             httpPost.setEntity(new ByteArrayEntity(flacContent, flacContentType));
+                            // Proof below that by using InputStream, data is sent to server almost (after buffer filled) as soon
+                            // as available, so if we can get streaming audio as early as possible,
+                            // speech recognition is more responsive than waiting the entire audio to arrive then sending
+                            // (because of limited bandwidth and latency)
+//                            final ByteArrayInputStream origIs = new ByteArrayInputStream(flacContent);
+//                            final InputStream mockIs = new InputStream() {
+//                                @Override
+//                                public int read() throws IOException {
+//                                    final int b = origIs.read();
+//                                    if (origIs.available() % 20000 == 0) { // sleep every few
+//                                        try {
+//                                            log.debug("Sleeping...");
+//                                            Thread.sleep(500);
+//                                        } catch (InterruptedException e) {
+//                                        }
+//                                    }
+//                                    return b;
+//                                }
+//                            };
+//                            httpPost.setEntity(new InputStreamEntity(mockIs, flacContentType));
+
                             log.info("Recognizing {} bytes {} for language {}...",
                                     flacContent.length, flacContentType, locale.toLanguageTag());
                             final String content;
