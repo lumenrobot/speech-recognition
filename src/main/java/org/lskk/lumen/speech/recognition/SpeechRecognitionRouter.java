@@ -46,9 +46,9 @@ import java.util.Locale;
 
 @Component
 @Profile("speechRecognitionApp")
-public class AudioRouter extends RouteBuilder {
+public class SpeechRecognitionRouter extends RouteBuilder {
 
-    private static final Logger log = LoggerFactory.getLogger(AudioRouter.class);
+    private static final Logger log = LoggerFactory.getLogger(SpeechRecognitionRouter.class);
     private static final DefaultExecutor executor = new DefaultExecutor();
     private static final HttpClientContext httpContext = HttpClientContext.create();
     public static final int SAMPLE_RATE = 16000;
@@ -286,7 +286,7 @@ public class AudioRouter extends RouteBuilder {
                             log.info("Recognized speech: {}", toJson.mapper.writeValueAsString(recognizedSpeech));
 
                             // lumen.audio.speech.recognition
-                            final String speechRecognitionUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=lumen.audio.speech.recognition";
+                            final String speechRecognitionUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=lumen.speech.recognition";
                             log.debug("Sending {} to {} ...", recognizedSpeech, speechRecognitionUri);
                             producer.sendBody(speechRecognitionUri, toJson.mapper.writeValueAsBytes(recognizedSpeech));
                         } else {
