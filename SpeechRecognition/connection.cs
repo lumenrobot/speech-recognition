@@ -19,7 +19,7 @@ namespace SpeechRecognition
         public connection()
         {
             channelKeyGet = "lumen.audio.wav.stream"; // get wave data from RabbitMQ, used for speech recognition
-            channelKeySend = "lumen.audio.speech.recognition"; // send text data to RabbitMQ, used for speech recognition
+            channelKeySend = "lumen.speech.recognition"; // send text data to RabbitMQ, used for speech recognition
         }
 
         public void connectTo()
