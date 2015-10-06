@@ -174,6 +174,8 @@ public class SpeechRecognitionRouter extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
+        final String ffmpegExecutable = !new File("/usr/bin/ffmpeg").exists() && new File("/usr/bin/avconv").exists() ? "avconv" : "ffmpeg";
+        log.info("libav autodetection result: We will use '{}'", ffmpegExecutable);
         final String googleSpeechKey = env.getRequiredProperty("google-speech.key");
         from("rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=avatar.nao1.audio.in")
                 .to("log:IN.avatar.nao1.audio.in?showHeaders=true&showAll=true&multiline=true")
@@ -206,7 +208,7 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                                 try (final ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
                                     FileUtils.writeByteArrayToFile(inFile, dataUri.getData());
                                     // flac.exe doesn't support mp3, and that's a problem for now (note: mp3 patent is expiring)
-                                    final CommandLine cmdLine = new CommandLine("ffmpeg");
+                                    final CommandLine cmdLine = new CommandLine(ffmpegExecutable);
                                     cmdLine.addArgument("-i");
                                     cmdLine.addArgument(inFile.toString());
                                     cmdLine.addArgument("-ar");
