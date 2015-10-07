@@ -66,9 +66,9 @@ public class AudioCatApp implements CommandLineRunner {
         audioObject.setDatePublished(audioObject.getDateCreated());
         audioObject.setDateModified(audioObject.getDateCreated());
         audioObject.setUploadDate(audioObject.getDateCreated());
-        final String dataRecordingUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=avatar.nao1.audio.in";
-        log.info("Sending {} to {} ...", audioObject, dataRecordingUri);
-        producer.sendBody(dataRecordingUri, toJson.mapper.writeValueAsBytes(audioObject));
+        final String audioInUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=avatar.nao1.audio.in";
+        log.info("Sending {} to {} ...", audioObject, audioInUri);
+        producer.sendBody(audioInUri, toJson.mapper.writeValueAsBytes(audioObject));
         SpringApplication.exit(appCtx);
     }
 
