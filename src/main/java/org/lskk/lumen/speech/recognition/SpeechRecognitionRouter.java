@@ -191,7 +191,7 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                             final ContentType originalType = ContentType.parse(dataUri.getMime());
                             final boolean conversionRequired = !FLAC_TYPE.equals(originalType.getMimeType()) || originalType.getParameter("rate") == null;
 
-                            final Locale locale = Locale.ENGLISH; // TODO: support this in AudioObject
+                            final Locale locale = Locale.US; // TODO: support this in AudioObject
                             final URI recognizeUri = new URIBuilder("https://www.google.com/speech-api/v2/recognize")
                                     .addParameter("output", "json")
                                     .addParameter("lang", locale.toLanguageTag())
