@@ -5,6 +5,7 @@ import com.github.ooxi.jdatauri.DataUri;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import org.apache.camel.ProducerTemplate;
+import org.apache.camel.builder.LoggingErrorHandlerBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -19,10 +20,8 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
-import org.lskk.lumen.core.AudioObject;
-import org.lskk.lumen.core.LumenThing;
-import org.lskk.lumen.core.RecognizedSpeech;
-import org.lskk.lumen.core.SpeechResult;
+import org.lskk.lumen.core.*;
+import org.lskk.lumen.core.util.AsError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -58,6 +57,8 @@ public class SpeechRecognitionRouter extends RouteBuilder {
     private Environment env;
     @Inject
     private ToJson toJson;
+    @Inject
+    private AsError asError;
     @Inject
     private ProducerTemplate producer;
     @Inject
@@ -177,6 +178,9 @@ public class SpeechRecognitionRouter extends RouteBuilder {
         final String ffmpegExecutable = !new File("/usr/bin/ffmpeg").exists() && new File("/usr/bin/avconv").exists() ? "avconv" : "ffmpeg";
         log.info("libav autodetection result: We will use '{}'", ffmpegExecutable);
         final String googleSpeechKey = env.getRequiredProperty("google-speech.key");
+
+        onException(Exception.class).bean(asError).bean(toJson).handled(true);
+        errorHandler(new LoggingErrorHandlerBuilder(log));
         from("rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=avatar.nao1.audio.in")
                 .to("log:IN.avatar.nao1.audio.in?showHeaders=true&showAll=true&multiline=true")
                 .process(exchange -> {
@@ -295,6 +299,7 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                             log.info("Ignoring unknown audio URL: " + contentUrl);
                         }
                     }
-                });
+                    exchange.getIn().setBody(new Status());
+                }).bean(toJson);
     }
 }
