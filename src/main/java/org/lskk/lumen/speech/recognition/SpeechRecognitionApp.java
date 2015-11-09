@@ -4,16 +4,19 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.lskk.lumen.core.LumenCoreConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
 @SpringBootApplication
 @Profile("speechRecognitionApp")
+@Import(LumenCoreConfig.class)
 public class SpeechRecognitionApp implements CommandLineRunner {
 
     private static Logger log = LoggerFactory.getLogger(SpeechRecognitionApp.class);
