@@ -7,6 +7,7 @@ import com.google.common.base.Splitter;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.LoggingErrorHandlerBuilder;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.component.rabbitmq.RabbitMQConstants;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
@@ -20,6 +21,7 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.joda.time.DateTime;
 import org.lskk.lumen.core.*;
 import org.lskk.lumen.core.util.AsError;
 import org.slf4j.Logger;
@@ -181,9 +183,10 @@ public class SpeechRecognitionRouter extends RouteBuilder {
 
         onException(Exception.class).bean(asError).bean(toJson).handled(true);
         errorHandler(new LoggingErrorHandlerBuilder(log));
-        from("rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=avatar.nao1.audio.in")
-                .to("log:IN.avatar.nao1.audio.in?showHeaders=true&showAll=true&multiline=true")
+        from("rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=" + AvatarChannel.AUDIO_IN.wildcard())
+                .to("log:IN.avatar.*.audio.in?showHeaders=true&showAll=true&multiline=true")
                 .process(exchange -> {
+                    final String avatarId = AvatarChannel.getAvatarId((String) exchange.getIn().getHeader(RabbitMQConstants.ROUTING_KEY));
                     final LumenThing thing = toJson.getMapper().readValue(
                             exchange.getIn().getBody(byte[].class), LumenThing.class);
                     if (thing instanceof AudioObject) {
@@ -284,6 +287,8 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                             final List<String> jsons = Splitter.on('\n').omitEmptyStrings().splitToList(content);
                             log.debug("JSON recognized all: {}", jsons);
                             final RecognizedSpeech recognizedSpeech = new RecognizedSpeech();
+                            recognizedSpeech.setDateCreated(new DateTime());
+                            recognizedSpeech.setAvatarId(avatarId);
                             for (final String json : jsons) {
                                 final RecognizedSpeechTmp single = toJson.mapper.readValue(json, RecognizedSpeechTmp.class);
                                 log.trace("JSON recognized: {}", single);
