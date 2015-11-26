@@ -183,8 +183,8 @@ public class SpeechRecognitionRouter extends RouteBuilder {
 
         onException(Exception.class).bean(asError).bean(toJson).handled(true);
         errorHandler(new LoggingErrorHandlerBuilder(log));
-        from("rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=" + AvatarChannel.AUDIO_IN.wildcard())
-                .to("log:IN.avatar.*.audio.in?showHeaders=true&showAll=true&multiline=true")
+        from("rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&queue=" + AvatarChannel.AUDIO_IN.wildcard() + "&routingKey=" + AvatarChannel.AUDIO_IN.wildcard())
+                .to("log:IN." + AvatarChannel.AUDIO_IN.wildcard() + "?showHeaders=true&showAll=true&multiline=true")
                 .process(exchange -> {
                     final String avatarId = AvatarChannel.getAvatarId((String) exchange.getIn().getHeader(RabbitMQConstants.ROUTING_KEY));
                     final LumenThing thing = toJson.getMapper().readValue(
@@ -297,7 +297,7 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                             log.info("Recognized speech: {}", toJson.mapper.writeValueAsString(recognizedSpeech));
 
                             // lumen.audio.speech.recognition
-                            final String speechRecognitionUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&routingKey=lumen.speech.recognition";
+                            final String speechRecognitionUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&skipQueueDeclare=true&routingKey=" + LumenChannel.SPEECH_RECOGNITION.key();
                             log.debug("Sending {} to {} ...", recognizedSpeech, speechRecognitionUri);
                             producer.sendBody(speechRecognitionUri, toJson.mapper.writeValueAsBytes(recognizedSpeech));
                         } else {
