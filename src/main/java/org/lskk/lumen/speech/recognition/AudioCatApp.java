@@ -20,6 +20,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.spi.FileTypeDetector;
+import java.util.Locale;
 
 @SpringBootApplication
 @Profile("audioCatApp")
@@ -48,6 +49,8 @@ public class AudioCatApp implements CommandLineRunner {
     public void run(String... args) throws Exception {
         Preconditions.checkArgument(args.length >= 1, "Usage: audiocat AUDIO_FILE");
         final File audioFile = new File(args[0]);
+        final Locale inLanguage = args.length >= 2 ? Locale.forLanguageTag(args[1]) : Locale.US;
+
         final String extension = FilenameUtils.getExtension(args[0]).toLowerCase();
         final byte[] content = FileUtils.readFileToByteArray(audioFile);
         String contentType = Files.probeContentType(audioFile.toPath());
@@ -58,6 +61,7 @@ public class AudioCatApp implements CommandLineRunner {
         }
         Preconditions.checkArgument(contentType != null, "Cannot guess content type for %s", audioFile);
         final AudioObject audioObject = new AudioObject();
+        audioObject.setInLanguage(inLanguage);
         audioObject.setContentType(contentType);
         audioObject.setContentUrl("data:" + contentType + ";base64," + Base64.encodeBase64String(content));
         audioObject.setContentSize((long) content.length);
