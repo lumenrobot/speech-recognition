@@ -185,7 +185,7 @@ public class SpeechRecognitionRouter extends RouteBuilder {
         onException(Exception.class).bean(asError).bean(toJson).handled(true);
         errorHandler(new LoggingErrorHandlerBuilder(log));
         from("rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&queue=" + AvatarChannel.AUDIO_IN.wildcard() + "&routingKey=" + AvatarChannel.AUDIO_IN.wildcard())
-                .to("log:IN." + AvatarChannel.AUDIO_IN.wildcard() + "?showHeaders=true&showAll=true&multiline=true")
+                .to("log:IN." + AvatarChannel.AUDIO_IN.wildcard() + "?showHeaders=true&showBody=false&multiline=true")
                 .process(exchange -> {
                     final String avatarId = AvatarChannel.getAvatarId((String) exchange.getIn().getHeader(RabbitMQConstants.ROUTING_KEY));
                     final LumenThing thing = toJson.getMapper().readValue(
@@ -313,6 +313,7 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                                     communicateAction.setObject(bestAlternative.get().getTranscript());
                                     communicateAction.setSpeechTruthValue(new float[] { 1f, bestAlternative.get().getConfidence().floatValue(), 0f });
                                     final String chatInboxUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&skipQueueDeclare=true&routingKey=" + AvatarChannel.CHAT_INBOX.key(avatarId);
+                                    log.debug("Sending {} to {} ...", communicateAction, chatInboxUri);
                                     producer.sendBody(chatInboxUri, toJson.apply(communicateAction));
                                 } else if (bestAlternative.isPresent()) {
                                     log.warn("AudioObject wants usedForChat but confidence {} too small for transcript: {}",
