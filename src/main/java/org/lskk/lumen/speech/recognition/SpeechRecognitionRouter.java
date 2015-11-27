@@ -306,18 +306,19 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                             if (Boolean.TRUE.equals(audioObject.getUsedForChat())) {
                                 final Optional<SpeechAlternative> bestAlternative = recognizedSpeech.getResults().stream().findFirst()
                                     .flatMap(it -> it.getAlternatives().stream().findFirst());
-                                if (bestAlternative.isPresent() && bestAlternative.get().getConfidence() >= 0.6) {
+                                final float confidence = bestAlternative.flatMap(it -> Optional.ofNullable(it.getConfidence())).map(Double::floatValue).orElse(1f);
+                                if (bestAlternative.isPresent() && confidence >= 0.6) {
                                     final CommunicateAction communicateAction = new CommunicateAction();
                                     communicateAction.setAvatarId(avatarId);
                                     communicateAction.setInLanguage(locale);
                                     communicateAction.setObject(bestAlternative.get().getTranscript());
-                                    communicateAction.setSpeechTruthValue(new float[] { 1f, bestAlternative.get().getConfidence().floatValue(), 0f });
+                                    communicateAction.setSpeechTruthValue(new float[] { 1f, confidence, 0f });
                                     final String chatInboxUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&skipQueueDeclare=true&routingKey=" + AvatarChannel.CHAT_INBOX.key(avatarId);
                                     log.debug("Sending {} to {} ...", communicateAction, chatInboxUri);
                                     producer.sendBody(chatInboxUri, toJson.apply(communicateAction));
                                 } else if (bestAlternative.isPresent()) {
                                     log.warn("AudioObject wants usedForChat but confidence {} too small for transcript: {}",
-                                            bestAlternative.get().getConfidence(), bestAlternative.get().getTranscript());
+                                            confidence, bestAlternative.get().getTranscript());
                                 } else {
                                     log.warn("AudioObject wants usedForChat but speech recognition failed, no SpeechResult");
                                 }
