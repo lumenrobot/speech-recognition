@@ -301,6 +301,26 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                             final String speechRecognitionUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&skipQueueDeclare=true&routingKey=" + LumenChannel.SPEECH_RECOGNITION.key();
                             log.debug("Sending {} to {} ...", recognizedSpeech, speechRecognitionUri);
                             producer.sendBody(speechRecognitionUri, toJson.mapper.writeValueAsBytes(recognizedSpeech));
+
+                            // usedForChat?
+                            if (Boolean.TRUE.equals(audioObject.getUsedForChat())) {
+                                final Optional<SpeechAlternative> bestAlternative = recognizedSpeech.getResults().stream().findFirst()
+                                    .flatMap(it -> it.getAlternatives().stream().findFirst());
+                                if (bestAlternative.isPresent() && bestAlternative.get().getConfidence() >= 0.6) {
+                                    final CommunicateAction communicateAction = new CommunicateAction();
+                                    communicateAction.setAvatarId(avatarId);
+                                    communicateAction.setInLanguage(locale);
+                                    communicateAction.setObject(bestAlternative.get().getTranscript());
+                                    communicateAction.setSpeechTruthValue(new float[] { 1f, bestAlternative.get().getConfidence().floatValue(), 0f });
+                                    final String chatInboxUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&skipQueueDeclare=true&routingKey=" + AvatarChannel.CHAT_INBOX.key(avatarId);
+                                    producer.sendBody(chatInboxUri, toJson.apply(communicateAction));
+                                } else if (bestAlternative.isPresent()) {
+                                    log.warn("AudioObject wants usedForChat but confidence {} too small for transcript: {}",
+                                            bestAlternative.get().getConfidence(), bestAlternative.get().getTranscript());
+                                } else {
+                                    log.warn("AudioObject wants usedForChat but speech recognition failed, no SpeechResult");
+                                }
+                            }
                         } else {
                             log.info("Ignoring unknown audio URL: " + contentUrl);
                         }
