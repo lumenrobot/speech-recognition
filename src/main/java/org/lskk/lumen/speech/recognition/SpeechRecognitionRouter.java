@@ -184,7 +184,7 @@ public class SpeechRecognitionRouter extends RouteBuilder {
 
         onException(Exception.class).bean(asError).bean(toJson).handled(true);
         errorHandler(new LoggingErrorHandlerBuilder(log));
-        from("rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&queue=" + AvatarChannel.AUDIO_IN.wildcard() + "&routingKey=" + AvatarChannel.AUDIO_IN.wildcard())
+        from("rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&concurrentConsumers=4&queue=" + AvatarChannel.AUDIO_IN.wildcard() + "&routingKey=" + AvatarChannel.AUDIO_IN.wildcard())
                 .to("log:IN." + AvatarChannel.AUDIO_IN.wildcard() + "?showHeaders=true&showBody=false&multiline=true")
                 .process(exchange -> {
                     final String avatarId = AvatarChannel.getAvatarId((String) exchange.getIn().getHeader(RabbitMQConstants.ROUTING_KEY));
