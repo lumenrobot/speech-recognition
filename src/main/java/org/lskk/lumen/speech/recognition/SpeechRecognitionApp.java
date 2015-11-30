@@ -1,5 +1,7 @@
 package org.lskk.lumen.speech.recognition;
 
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.config.ConnectionConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
@@ -36,7 +38,11 @@ public class SpeechRecognitionApp implements CommandLineRunner {
         final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
         cm.setMaxTotal(200);
         cm.setDefaultMaxPerRoute(20);
-        return HttpClients.custom().useSystemProperties().setConnectionManager(cm).build();
+        return HttpClients.custom().useSystemProperties().setConnectionManager(cm)
+                .setDefaultRequestConfig(RequestConfig.custom()
+                        .setConnectTimeout(20000)
+                        .setSocketTimeout(20000).build())
+                .build();
     }
 
     @Override
