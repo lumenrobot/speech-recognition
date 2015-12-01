@@ -36,15 +36,15 @@ public class SpeechRecognitionApp implements CommandLineRunner {
     @Bean(destroyMethod = "close")
     public CloseableHttpClient httpClient() {
         // cache.itb.ac.id is not very reliable with pooling connection, better dedicated connection per recognition
-        final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
-        cm.setMaxTotal(200);
-        cm.setDefaultMaxPerRoute(20);
-        cm.setValidateAfterInactivity(100);
-        return HttpClients.custom().useSystemProperties().setConnectionManager(cm)
+//        final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+//        cm.setMaxTotal(200);
+//        cm.setDefaultMaxPerRoute(20);
+//        cm.setValidateAfterInactivity(100);
+        return HttpClients.custom().useSystemProperties()//.setConnectionManager(cm)
                 .setDefaultRequestConfig(RequestConfig.custom()
-                        .setConnectTimeout(15000)
-                        .setSocketTimeout(15000)
-                        .setConnectionRequestTimeout(15000)
+                        .setConnectTimeout(10000)
+                        .setSocketTimeout(10000)
+                        .setConnectionRequestTimeout(10000)
                         .build())
                 .build();
     }
