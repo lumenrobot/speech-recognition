@@ -55,6 +55,7 @@ public class SpeechRecognitionRouter extends RouteBuilder {
     private static final HttpClientContext httpContext = HttpClientContext.create();
     public static final int SAMPLE_RATE = 16000;
     public static final String FLAC_TYPE = "audio/x-flac";
+    public static final float SPEECH_CONFIDENCE_THRESHOLD = 0.3f;
 
     @Inject
     private Environment env;
@@ -307,7 +308,7 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                                 final Optional<SpeechAlternative> bestAlternative = recognizedSpeech.getResults().stream().findFirst()
                                     .flatMap(it -> it.getAlternatives().stream().findFirst());
                                 final float confidence = bestAlternative.flatMap(it -> Optional.ofNullable(it.getConfidence())).map(Double::floatValue).orElse(1f);
-                                if (bestAlternative.isPresent() && confidence >= 0.6) {
+                                if (bestAlternative.isPresent() && confidence >= SPEECH_CONFIDENCE_THRESHOLD) {
                                     final CommunicateAction communicateAction = new CommunicateAction();
                                     communicateAction.setAvatarId(avatarId);
                                     communicateAction.setInLanguage(locale);
