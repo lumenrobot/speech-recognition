@@ -5,6 +5,7 @@ import org.apache.http.config.ConnectionConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.lskk.lumen.core.LumenCoreConfig;
 import org.slf4j.Logger;
@@ -40,7 +41,8 @@ public class SpeechRecognitionApp implements CommandLineRunner {
 //        cm.setMaxTotal(200);
 //        cm.setDefaultMaxPerRoute(20);
 //        cm.setValidateAfterInactivity(100);
-        return HttpClients.custom().useSystemProperties()//.setConnectionManager(cm)
+        final BasicHttpClientConnectionManager basicCm = new BasicHttpClientConnectionManager();
+        return HttpClients.custom().useSystemProperties().setConnectionManager(basicCm)
                 .setDefaultRequestConfig(RequestConfig.custom()
                         .setConnectTimeout(10000)
                         .setSocketTimeout(10000)
