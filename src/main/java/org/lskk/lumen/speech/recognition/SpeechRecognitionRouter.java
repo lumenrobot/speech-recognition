@@ -276,15 +276,16 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                                     flacContent.length, flacContentType, locale.toLanguageTag());
                             final String content;
 
-                            // do NOT close the resp/connection
-                            final CloseableHttpResponse resp = httpClient.execute(httpPost, httpContext);
-                            if (resp.getStatusLine().getStatusCode() != 200) {
-                                final String errorContent = IOUtils.toString(resp.getEntity().getContent());
-                                log.error("Recognize error: {} - {}", resp.getStatusLine(), errorContent);
-                                throw new SpeechRecognitionException(
-                                        String.format("Recognize error: %s - %s", resp.getStatusLine(), errorContent));
+                            // need to close the resp/connection because ITB/Google Speech connection is unstable
+                            try (final CloseableHttpResponse resp = httpClient.execute(httpPost, httpContext)) {
+                                if (resp.getStatusLine().getStatusCode() != 200) {
+                                    final String errorContent = IOUtils.toString(resp.getEntity().getContent());
+                                    log.error("Recognize error: {} - {}", resp.getStatusLine(), errorContent);
+                                    throw new SpeechRecognitionException(
+                                            String.format("Recognize error: %s - %s", resp.getStatusLine(), errorContent));
+                                }
+                                content = IOUtils.toString(resp.getEntity().getContent());
                             }
-                            content = IOUtils.toString(resp.getEntity().getContent());
 
                             final List<String> jsons = Splitter.on('\n').omitEmptyStrings().splitToList(content);
                             log.debug("JSON recognized all: {}", jsons);
