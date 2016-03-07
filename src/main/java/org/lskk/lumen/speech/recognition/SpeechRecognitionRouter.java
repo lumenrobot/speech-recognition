@@ -24,6 +24,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.joda.time.DateTime;
 import org.lskk.lumen.core.*;
 import org.lskk.lumen.core.util.AsError;
+import org.lskk.lumen.core.util.ToJson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -293,16 +294,16 @@ public class SpeechRecognitionRouter extends RouteBuilder {
                             recognizedSpeech.setDateCreated(new DateTime());
                             recognizedSpeech.setAvatarId(avatarId);
                             for (final String json : jsons) {
-                                final RecognizedSpeechTmp single = toJson.mapper.readValue(json, RecognizedSpeechTmp.class);
+                                final RecognizedSpeechTmp single = toJson.getMapper().readValue(json, RecognizedSpeechTmp.class);
                                 log.trace("JSON recognized: {}", single);
                                 recognizedSpeech.getResults().addAll(single.getResults());
                             }
-                            log.info("Recognized speech: {}", toJson.mapper.writeValueAsString(recognizedSpeech));
+                            log.info("Recognized speech: {}", toJson.getMapper().writeValueAsString(recognizedSpeech));
 
                             // lumen.audio.speech.recognition
                             final String speechRecognitionUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&skipQueueDeclare=true&routingKey=" + LumenChannel.SPEECH_RECOGNITION.key();
                             log.debug("Sending {} to {} ...", recognizedSpeech, speechRecognitionUri);
-                            producer.sendBody(speechRecognitionUri, toJson.mapper.writeValueAsBytes(recognizedSpeech));
+                            producer.sendBody(speechRecognitionUri, toJson.getMapper().writeValueAsBytes(recognizedSpeech));
 
                             // usedForChat?
                             if (Boolean.TRUE.equals(audioObject.getUsedForChat())) {

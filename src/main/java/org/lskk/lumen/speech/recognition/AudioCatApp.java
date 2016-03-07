@@ -7,6 +7,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.joda.time.DateTime;
 import org.lskk.lumen.core.AudioObject;
+import org.lskk.lumen.core.util.ToJson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -72,7 +73,7 @@ public class AudioCatApp implements CommandLineRunner {
         audioObject.setUploadDate(audioObject.getDateCreated());
         final String audioInUri = "rabbitmq://localhost/amq.topic?connectionFactory=#amqpConnFactory&exchangeType=topic&autoDelete=false&skipQueueDeclare=true&routingKey=avatar.nao1.audio.in";
         log.info("Sending {} to {} ...", audioObject, audioInUri);
-        producer.sendBody(audioInUri, toJson.mapper.writeValueAsBytes(audioObject));
+        producer.sendBody(audioInUri, toJson.getMapper().writeValueAsBytes(audioObject));
         SpringApplication.exit(appCtx);
     }
 
