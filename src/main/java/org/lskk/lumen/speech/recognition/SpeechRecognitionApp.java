@@ -1,13 +1,11 @@
 package org.lskk.lumen.speech.recognition;
 
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.config.ConnectionConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.lskk.lumen.core.LumenCoreConfig;
+import org.lskk.lumen.core.util.ProxyConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -19,7 +17,7 @@ import org.springframework.context.annotation.Profile;
 
 @SpringBootApplication
 @Profile("speechRecognitionApp")
-@Import(LumenCoreConfig.class)
+@Import({LumenCoreConfig.class, ProxyConfig.class})
 public class SpeechRecognitionApp implements CommandLineRunner {
 
     private static Logger log = LoggerFactory.getLogger(SpeechRecognitionApp.class);
